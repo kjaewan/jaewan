@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Falling Lights</title>
+  <style>
+    :root {
+      --fall-duration: 9s;
+      --panel-gradient: radial-gradient(circle at 20% 20%, #243b55 0%, #141e30 45%, #0b1320 100%);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0f172a, #111827 45%, #0b1222);
+      font-family: "Pretendard", "Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: #f8fafc;
+    }
+
+    .sky {
+      position: relative;
+      width: min(900px, 90vw);
+      height: min(620px, 85vh);
+      background: var(--panel-gradient);
+      border-radius: 24px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    .message {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      gap: 12px;
+      z-index: 1;
+      padding: 24px;
+    }
+
+    .message h1 {
+      margin: 0;
+      font-size: clamp(28px, 5vw, 40px);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #e0f2fe;
+    }
+
+    .message p {
+      margin: 0;
+      color: #cbd5e1;
+      max-width: 520px;
+      line-height: 1.6;
+      font-size: clamp(15px, 3vw, 17px);
+    }
+
+    .glow {
+      position: absolute;
+      inset: -40%;
+      background: radial-gradient(circle at 30% 20%, rgba(14, 165, 233, 0.12), transparent 55%),
+        radial-gradient(circle at 70% 40%, rgba(14, 165, 233, 0.06), transparent 60%),
+        radial-gradient(circle at 50% 80%, rgba(99, 102, 241, 0.12), transparent 60%);
+      filter: blur(30px);
+      z-index: 0;
+    }
+
+    .faller {
+      position: absolute;
+      top: -10vh;
+      font-size: clamp(14px, 2.2vw, 22px);
+      color: #e0f2fe;
+      opacity: 0;
+      animation: drop var(--fall-duration) linear forwards;
+      filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.45));
+      will-change: transform, opacity;
+    }
+
+    @keyframes drop {
+      0% {
+        transform: translate3d(0, -12vh, 0) rotate(0deg) scale(0.9);
+        opacity: 0;
+      }
+      10% {
+        opacity: 1;
+      }
+      100% {
+        transform: translate3d(var(--drift, 0px), 105vh, 0) rotate(var(--spin, 120deg)) scale(1.05);
+        opacity: 0;
+      }
+    }
+
+    .ground {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 120px;
+      background: linear-gradient(to top, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0));
+      z-index: 1;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <main class="sky" aria-label="떨어지는 빛 이펙트 데모">
+    <div class="glow" aria-hidden="true"></div>
+    <div class="message">
+      <h1>Fall in Slow Motion</h1>
+      <p>밤하늘을 가로질러 천천히 떨어지는 빛을 감상해 보세요. 새로고침하거나 조금만 기다리면 매번 다른 패턴이 만들어집니다.</p>
+    </div>
+    <div class="ground" aria-hidden="true"></div>
+  </main>
+
+  <script>
+    const container = document.querySelector(".sky");
+    const symbols = ["🌟", "❄️", "🍃", "💧", "✨", "⭐", "🪽", "•"];
+
+    const randomBetween = (min, max) => Math.random() * (max - min) + min;
+
+    function makeFaller() {
+      const el = document.createElement("span");
+      el.className = "faller";
+      el.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+
+      const left = randomBetween(-5, 95);
+      const drift = randomBetween(-80, 80);
+      const spin = randomBetween(90, 360) * (Math.random() > 0.5 ? 1 : -1);
+      const duration = randomBetween(6, 12);
+      const delay = randomBetween(0, 1.5);
+
+      el.style.left = `${left}%`;
+      el.style.setProperty("--drift", `${drift}px`);
+      el.style.setProperty("--spin", `${spin}deg`);
+      el.style.animationDuration = `${duration}s`;
+      el.style.animationDelay = `${delay}s`;
+
+      container.appendChild(el);
+
+      const cleanup = () => el.remove();
+      el.addEventListener("animationend", cleanup);
+    }
+
+    function startFalling() {
+      let active = 0;
+      const limit = 80;
+
+      const interval = setInterval(() => {
+        if (active >= limit) return;
+        active += 1;
+        makeFaller();
+
+        // Clean up periodically to avoid DOM bloat in long sessions
+        container.querySelectorAll(".faller").forEach((node) => {
+          if (node.getBoundingClientRect().top > container.clientHeight + 50) {
+            node.remove();
+            active = Math.max(active - 1, 0);
+          }
+        });
+      }, 420);
+
+      window.addEventListener("beforeunload", () => clearInterval(interval));
+    }
+
+    startFalling();
+  </script>
+</body>
+</html>
